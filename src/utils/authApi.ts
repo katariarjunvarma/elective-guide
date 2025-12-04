@@ -72,36 +72,13 @@ export function setSession(session: Session | null) {
   localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
 }
 
-export async function login(email: string, password: string, role: UserRole): Promise<User | null> {
-  try {
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password, role }),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as { user?: { id: string; name: string; email: string; role: UserRole } };
-    if (!data.user) return null;
-
-    const user: User = {
-      id: data.user.id,
-      name: data.user.name,
-      email: data.user.email,
-      passwordHash: "", // password hash is not exposed by the backend
-      role: data.user.role,
-    };
-
-    setSession({ userId: user.id, role: user.role });
-    return user;
-  } catch {
-    return null;
-  }
+export function login(email: string, password: string, role: UserRole): User | null {
+  const users = loadUsers();
+  const passwordHash = simpleHash(password);
+  const user = users.find((u) => u.email === email && u.passwordHash === passwordHash && u.role === role);
+  if (!user) return null;
+  setSession({ userId: user.id, role: user.role });
+  return user;
 }
 
 export function logout() {

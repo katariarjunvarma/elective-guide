@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleLogin = async (email: string, password: string, role: UserRole) => {
-    const result = await apiLogin(email, password, role);
+    const result = apiLogin(email, password, role);
     if (!result) return false;
     setUser(result);
     return true;
