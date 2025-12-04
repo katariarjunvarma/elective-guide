@@ -33,53 +33,60 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Sign in as a student or admin to continue</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={role} onValueChange={(val) => setRole(val as "student" | "admin")} className="w-full mb-4">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="student">Student</TabsTrigger>
-              <TabsTrigger value="admin">Admin</TabsTrigger>
-            </TabsList>
-            <TabsContent value="student" className="mt-4 text-sm text-muted-foreground">
-              Use student@university.edu / Student@123 for demo access.
-            </TabsContent>
-            <TabsContent value="admin" className="mt-4 text-sm text-muted-foreground">
-              Use admin@university.edu / Admin@123 for demo access.
-            </TabsContent>
-          </Tabs>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@university.edu"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-muted px-4 flex flex-col">
+      <header className="pt-6 pb-4 flex items-center gap-2 text-primary">
+        <img src="/favicon.ico" alt="Elective Recommendation System logo" className="h-8 w-8" />
+        <h1 className="text-2xl font-semibold tracking-tight">Elective Recommendation System</h1>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Sign in as a student or admin to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={role} onValueChange={(val) => setRole(val as "student" | "admin")} className="w-full mb-4">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="student">Student</TabsTrigger>
+                <TabsTrigger value="admin">Admin</TabsTrigger>
+              </TabsList>
+              <TabsContent value="student" className="mt-4 text-sm text-muted-foreground">
+                Use username <span className="font-semibold">user001</span> and password <span className="font-semibold">user@001</span> for student access.
+              </TabsContent>
+              <TabsContent value="admin" className="mt-4 text-sm text-muted-foreground">
+                Use username <span className="font-semibold">adminhead</span> and password <span className="font-semibold">admin@head</span> for admin access.
+              </TabsContent>
+            </Tabs>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Username</Label>
+                <Input
+                  id="email"
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

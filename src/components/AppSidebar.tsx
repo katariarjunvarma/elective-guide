@@ -45,9 +45,11 @@ export function AppSidebar() {
         <div className="p-6 border-b border-sidebar-border">
           {state === "expanded" && (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
+              <img
+                src="/favicon.ico"
+                alt="Elective Recommendation System logo"
+                className="h-10 w-10 rounded-lg"
+              />
               <div>
                 <h2 className="font-bold text-sidebar-foreground">Elective</h2>
                 <p className="text-xs text-sidebar-foreground/70">Recommendation</p>
@@ -55,9 +57,11 @@ export function AppSidebar() {
             </div>
           )}
           {state === "collapsed" && (
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+            <img
+              src="/favicon.ico"
+              alt="Elective Recommendation System logo"
+              className="h-10 w-10 rounded-lg mx-auto"
+            />
           )}
         </div>
 

@@ -19,7 +19,11 @@ import { useAuth } from "./context/AuthContext";
 const queryClient = new QueryClient();
 
 function RequireAuth({ children, role }: { children: JSX.Element; role?: "student" | "admin" }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return null;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;

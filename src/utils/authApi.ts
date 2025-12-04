@@ -28,15 +28,15 @@ function loadUsers(): User[] {
     {
       id: "admin-1",
       name: "Admin User",
-      email: "admin@university.edu",
-      passwordHash: simpleHash("Admin@123"),
+      email: "adminhead",
+      passwordHash: simpleHash("admin@head"),
       role: "admin",
     },
     {
       id: "student-1",
       name: "Student User",
-      email: "student@university.edu",
-      passwordHash: simpleHash("Student@123"),
+      email: "user001",
+      passwordHash: simpleHash("user@001"),
       role: "student",
     },
   ];

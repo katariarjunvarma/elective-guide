@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,13 +8,35 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 export default function Settings() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    typeof window !== "undefined"
+      ? document.documentElement.classList.contains("dark")
+      : false
+  );
   const [minMatchScore, setMinMatchScore] = useState(50);
   const [appDescription, setAppDescription] = useState(
     "The Elective Recommendation System helps university students choose the best elective courses based on their academic profile, interests, and career goals. Using intelligent scoring algorithms, it provides personalized course suggestions to enhance your academic journey."
   );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
   const handleSave = () => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+
     toast.success("Settings saved successfully");
   };
 
@@ -95,11 +117,11 @@ export default function Settings() {
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Last Updated</span>
-            <span className="font-medium">November 2024</span>
+            <span className="font-medium">December 2025</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Developer</span>
-            <span className="font-medium">B.Tech CSE (AI & ML) Student</span>
+            <span className="font-medium">K.Arjun Varma </span>
           </div>
         </CardContent>
       </Card>
