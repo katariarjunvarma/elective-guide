@@ -8,8 +8,21 @@ export interface User {
   role: UserRole;
 }
 
+export interface PendingUserRegistration {
+  id: string;
+  name: string;
+  registrationNumber: string;
+  email: string;
+  username: string;
+  passwordHash: string;
+  university: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 const STORAGE_KEY_USERS = "ers_users";
 const STORAGE_KEY_SESSION = "ers_session";
+const STORAGE_KEY_PENDING_USERS = "ers_pending_users";
 
 function simpleHash(input: string): string {
   let hash = 0;
@@ -47,6 +60,20 @@ function loadUsers(): User[] {
 
 function saveUsers(users: User[]) {
   localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+}
+
+function loadPendingUsers(): PendingUserRegistration[] {
+  const raw = localStorage.getItem(STORAGE_KEY_PENDING_USERS);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as PendingUserRegistration[];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingUsers(users: PendingUserRegistration[]) {
+  localStorage.setItem(STORAGE_KEY_PENDING_USERS, JSON.stringify(users));
 }
 
 export interface Session {
@@ -125,4 +152,63 @@ export function updateUser(id: string, updates: Partial<Pick<User, "name" | "ema
 export function deleteUser(id: string) {
   const users = loadUsers().filter((u) => u.id !== id);
   saveUsers(users);
+}
+
+export function createPendingUserRegistration(input: {
+  name: string;
+  registrationNumber: string;
+  email: string;
+  username: string;
+  password: string;
+  university: string;
+}): PendingUserRegistration {
+  const pending = loadPendingUsers();
+  const id = `pending-${Date.now()}`;
+  const record: PendingUserRegistration = {
+    id,
+    name: input.name,
+    registrationNumber: input.registrationNumber,
+    email: input.email,
+    username: input.username,
+    passwordHash: simpleHash(input.password),
+    university: input.university,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  };
+  pending.push(record);
+  savePendingUsers(pending);
+  return record;
+}
+
+export function listPendingUserRegistrations(): PendingUserRegistration[] {
+  return loadPendingUsers();
+}
+
+export function approvePendingUserRegistration(id: string): User | null {
+  const pending = loadPendingUsers();
+  const index = pending.findIndex((p) => p.id === id);
+  if (index === -1) return null;
+  const record = pending[index];
+
+  const users = loadUsers();
+  const newUser: User = {
+    id: `student-${Date.now()}`,
+    name: record.name,
+    email: record.username,
+    passwordHash: record.passwordHash,
+    role: "student",
+  };
+
+  users.push(newUser);
+  saveUsers(users);
+
+  pending.splice(index, 1);
+  savePendingUsers(pending);
+
+  return newUser;
+}
+
+export function rejectPendingUserRegistration(id: string) {
+  const pending = loadPendingUsers().filter((p) => p.id !== id);
+  savePendingUsers(pending);
 }

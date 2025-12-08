@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { createPendingUserRegistration } from "@/utils/authApi";
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,6 +18,15 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regUniversity, setRegUniversity] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +41,39 @@ export default function Login() {
       navigate("/admin");
     } else {
       navigate("/");
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!regUniversity) {
+      toast.error("Please select a university");
+      return;
+    }
+
+    setRegLoading(true);
+    try {
+      createPendingUserRegistration({
+        name: regName,
+        registrationNumber: regNumber,
+        email: regEmail,
+        username: regUsername,
+        password: regPassword,
+        university: regUniversity,
+      });
+
+      setIsRegisterOpen(false);
+      setRegName("");
+      setRegNumber("");
+      setRegEmail("");
+      setRegUsername("");
+      setRegPassword("");
+      setRegUniversity("");
+
+      toast.success("Registration submitted. Please wait for admin approval before logging in.");
+    } finally {
+      setRegLoading(false);
     }
   };
 
@@ -84,6 +129,97 @@ export default function Login() {
                 {loading ? "Logging in..." : "Login"}
               </Button>
             </form>
+
+            <div className="mt-6 text-center text-sm text-muted-foreground">
+              <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full mt-2">
+                    Add User / Request Access
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Student Registration Request</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details below to request a new student account. Your request will be
+                      reviewed by an admin.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleRegisterSubmit} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-name">Name</Label>
+                      <Input
+                        id="reg-name"
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-number">Registration Number</Label>
+                      <Input
+                        id="reg-number"
+                        value={regNumber}
+                        onChange={(e) => setRegNumber(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-email">Email</Label>
+                      <Input
+                        id="reg-email"
+                        type="email"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-username">Username</Label>
+                      <Input
+                        id="reg-username"
+                        value={regUsername}
+                        onChange={(e) => setRegUsername(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password">Password</Label>
+                      <Input
+                        id="reg-password"
+                        type="password"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>University</Label>
+                      <Select value={regUniversity} onValueChange={setRegUniversity}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your university" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lovely-professional-university">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src="/lpu-logo.png"
+                                alt="Lovely Professional University logo"
+                                className="h-5 w-5 rounded-full"
+                              />
+                              <span>Lovely Professional University</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={regLoading}>
+                      {regLoading ? "Submitting..." : "Submit Request"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </CardContent>
         </Card>
       </main>

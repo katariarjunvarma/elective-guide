@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { courses as initialCourses, categories, careerGoals, Course } from "@/data/seedData";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Courses() {
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -97,14 +99,15 @@ export default function Courses() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Courses Management</h1>
           <p className="text-muted-foreground">Manage available elective courses</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEditingCourse(null); resetForm(); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Course
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {user?.role === "admin" && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { setEditingCourse(null); resetForm(); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Course
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCourse ? "Edit Course" : "Add New Course"}</DialogTitle>
               <DialogDescription>Fill in the course details</DialogDescription>
@@ -219,6 +222,7 @@ export default function Courses() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <Card>
@@ -263,7 +267,7 @@ export default function Courses() {
                   <TableHead>Difficulty</TableHead>
                   <TableHead>Career Path</TableHead>
                   <TableHead>Credits</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {user?.role === "admin" && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,24 +285,26 @@ export default function Courses() {
                     </TableCell>
                     <TableCell className="text-sm">{course.careerPath}</TableCell>
                     <TableCell>{course.credits}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(course)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(course.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {user?.role === "admin" && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(course)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(course.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

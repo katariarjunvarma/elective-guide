@@ -33,7 +33,6 @@ export function AppSidebar() {
     : [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
         { title: "Get Recommendations", url: "/recommendations", icon: Sparkles },
-        { title: "Students", url: "/students", icon: Users },
         { title: "Courses", url: "/courses", icon: BookOpen },
         { title: "Analytics", url: "/analytics", icon: BarChart3 },
         { title: "Settings", url: "/settings", icon: Settings },
