@@ -1,270 +1,216 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Plus, Pencil, Trash2, Sparkles, Search } from "lucide-react";
-import { students as initialStudents, branches, semesters, timeCommitments, interestAreas, careerGoals, Student } from "@/data/seedData";
+import { Search, Eye, EyeOff } from "lucide-react";
+import { students as profileStudents, Student } from "@/data/seedData";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { listStudents, blockStudentUser, unblockStudentUser, getCurrentUser, login, createPendingUserRegistration, adminResetStudentPassword } from "@/utils/authApi";
 
 export default function Students() {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [formData, setFormData] = useState<Partial<Student>>({
-    id: "",
-    name: "",
-    branch: "",
-    semester: undefined,
-    cgpa: 7.0,
-    mathScore: 70,
-    codingSkill: 70,
-    timeCommitment: "Medium",
-    interestAreas: [],
-    careerGoal: "",
-  });
-  const navigate = useNavigate();
+  const [accounts, setAccounts] = useState(() => listStudents());
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmTargetId, setConfirmTargetId] = useState<string | null>(null);
+  const [confirmIsBlocked, setConfirmIsBlocked] = useState<boolean | undefined>(undefined);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const filteredStudents = students.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.branch.toLowerCase().includes(searchTerm.toLowerCase())
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regUniversity, setRegUniversity] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetAdminPassword, setResetAdminPassword] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [showResetAdmin, setShowResetAdmin] = useState(false);
+  const [showResetNew, setShowResetNew] = useState(false);
+
+  const refreshAccounts = () => {
+    setAccounts(listStudents());
+  };
+
+  const filteredAccounts = useMemo(
+    () =>
+      accounts.filter(
+        (s) =>
+          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          s.email.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [accounts, searchTerm]
   );
 
-  const handleSave = () => {
-    if (!formData.id || !formData.name || !formData.branch || !formData.semester) {
-      toast.error("Please fill in all required fields");
+  const openResetPassword = () => {
+    if (!selectedUser) return;
+    setResetAdminPassword("");
+    setResetNewPassword("");
+    setShowResetAdmin(false);
+    setShowResetNew(false);
+    setIsResetOpen(true);
+  };
+
+  const handleAddUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!regUniversity) {
+      toast.error("Please select a university");
       return;
     }
 
-    if (editingStudent) {
-      setStudents(students.map((s) => (s.id === editingStudent.id ? (formData as Student) : s)));
-      toast.success("Student updated successfully");
-    } else {
-      if (students.some((s) => s.id === formData.id)) {
-        toast.error("Student ID already exists");
-        return;
-      }
-      setStudents([...students, formData as Student]);
-      toast.success("Student created successfully");
+    setRegLoading(true);
+    try {
+      createPendingUserRegistration({
+        name: regName,
+        registrationNumber: regNumber,
+        email: regEmail,
+        username: regUsername,
+        password: regPassword,
+        university: regUniversity,
+      });
+
+      setIsAddUserOpen(false);
+      setRegName("");
+      setRegNumber("");
+      setRegEmail("");
+      setRegUsername("");
+      setRegPassword("");
+      setRegUniversity("");
+
+      toast.success("Registration submitted. Please approve it from New User Approvals.");
+    } finally {
+      setRegLoading(false);
     }
-
-    setIsDialogOpen(false);
-    setEditingStudent(null);
-    resetForm();
   };
 
-  const handleEdit = (student: Student) => {
-    setEditingStudent(student);
-    setFormData(student);
-    setIsDialogOpen(true);
+  const handleToggleBlock = (id: string, isBlocked?: boolean) => {
+    setConfirmTargetId(id);
+    setConfirmIsBlocked(isBlocked);
+    setConfirmPassword("");
+    setShowPassword(false);
+    setIsConfirmOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setStudents(students.filter((s) => s.id !== id));
-    toast.success("Student deleted successfully");
+  const openDetails = (id: string) => {
+    setSelectedUserId(id);
+    setIsDetailsOpen(true);
   };
 
-  const handleGetRecommendations = (student: Student) => {
-    // In a real app, we'd pass this data via state or context
-    navigate("/recommendations");
-    toast.info(`Ready to generate recommendations for ${student.name}`);
-  };
+  const selectedUser = useMemo(
+    () => accounts.find((u) => u.id === selectedUserId) ?? null,
+    [accounts, selectedUserId]
+  );
 
-  const resetForm = () => {
-    setFormData({
-      id: "",
-      name: "",
-      branch: "",
-      semester: undefined,
-      cgpa: 7.0,
-      mathScore: 70,
-      codingSkill: 70,
-      timeCommitment: "Medium",
-      interestAreas: [],
-      careerGoal: "",
-    });
-  };
-
-  const toggleInterest = (interest: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      interestAreas: prev.interestAreas?.includes(interest)
-        ? prev.interestAreas.filter((i) => i !== interest)
-        : [...(prev.interestAreas || []), interest],
-    }));
-  };
+  const selectedProfile: Student | undefined = useMemo(
+    () =>
+      selectedUser
+        ? profileStudents.find((p) => p.name === selectedUser.name)
+        : undefined,
+    [selectedUser]
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Students Management</h1>
-          <p className="text-muted-foreground">Manage student profiles and view their details</p>
+          <p className="text-muted-foreground">Manage student accounts and view their details</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingStudent(null); resetForm(); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Student
+            <Button>
+              Add User
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingStudent ? "Edit Student" : "Add New Student"}</DialogTitle>
-              <DialogDescription>Fill in the student's academic profile</DialogDescription>
+              <DialogTitle>Add Student User</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new student account request. It will appear in the New User Approvals list.
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Student ID *</Label>
-                  <Input
-                    value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    placeholder="ST001"
-                    disabled={!!editingStudent}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Name *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Student Name"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Branch *</Label>
-                  <Select value={formData.branch} onValueChange={(val) => setFormData({ ...formData, branch: val })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branches.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Semester *</Label>
-                  <Select
-                    value={formData.semester?.toString()}
-                    onValueChange={(val) => setFormData({ ...formData, semester: parseInt(val) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {semesters.map((s) => (
-                        <SelectItem key={s} value={s.toString()}>Semester {s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+            <form onSubmit={handleAddUserSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label>CGPA: {formData.cgpa?.toFixed(1)}</Label>
-                <Slider
-                  value={[formData.cgpa || 7.0]}
-                  onValueChange={([val]) => setFormData({ ...formData, cgpa: val })}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="py-4"
+                <Label htmlFor="reg-name">Name</Label>
+                <Input
+                  id="reg-name"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  required
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Math Score: {formData.mathScore}</Label>
-                <Slider
-                  value={[formData.mathScore || 70]}
-                  onValueChange={([val]) => setFormData({ ...formData, mathScore: val })}
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="py-4"
+                <Label htmlFor="reg-number">Registration Number</Label>
+                <Input
+                  id="reg-number"
+                  value={regNumber}
+                  onChange={(e) => setRegNumber(e.target.value)}
+                  required
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Coding Skill: {formData.codingSkill}</Label>
-                <Slider
-                  value={[formData.codingSkill || 70]}
-                  onValueChange={([val]) => setFormData({ ...formData, codingSkill: val })}
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="py-4"
+                <Label htmlFor="reg-email">Email</Label>
+                <Input
+                  id="reg-email"
+                  type="email"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  required
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Time Commitment</Label>
-                <Select
-                  value={formData.timeCommitment}
-                  onValueChange={(val) => setFormData({ ...formData, timeCommitment: val })}
-                >
+                <Label htmlFor="reg-username">Username</Label>
+                <Input
+                  id="reg-username"
+                  value={regUsername}
+                  onChange={(e) => setRegUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reg-password">Password</Label>
+                <Input
+                  id="reg-password"
+                  type="password"
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>University</Label>
+                <Select value={regUniversity} onValueChange={setRegUniversity}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select your university" />
                   </SelectTrigger>
                   <SelectContent>
-                    {timeCommitments.map((tc) => (
-                      <SelectItem key={tc} value={tc}>{tc}</SelectItem>
-                    ))}
+                    <SelectItem value="lovely-professional-university">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/lpu-logo.png"
+                          alt="Lovely Professional University logo"
+                          className="h-5 w-5 rounded-full"
+                        />
+                        <span>Lovely Professional University</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label>Interest Areas (Select multiple)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {interestAreas.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant={formData.interestAreas?.includes(interest) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleInterest(interest)}
-                    >
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Career Goal</Label>
-                <Select
-                  value={formData.careerGoal}
-                  onValueChange={(val) => setFormData({ ...formData, careerGoal: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select career goal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {careerGoals.map((cg) => (
-                      <SelectItem key={cg} value={cg}>{cg}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button className="w-full" onClick={handleSave}>
-                {editingStudent ? "Update Student" : "Create Student"}
+              <Button type="submit" className="w-full" disabled={regLoading}>
+                {regLoading ? "Submitting..." : "Submit Request"}
               </Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -274,7 +220,7 @@ export default function Students() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>All Students</CardTitle>
-              <CardDescription>{filteredStudents.length} student profiles</CardDescription>
+              <CardDescription>Approved student accounts with login access</CardDescription>
             </div>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -288,76 +234,279 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Semester</TableHead>
-                  <TableHead>CGPA</TableHead>
-                  <TableHead>Interests</TableHead>
-                  <TableHead>Career Goal</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.id}</TableCell>
-                    <TableCell>{student.name}</TableCell>
-                    <TableCell>{student.branch}</TableCell>
-                    <TableCell>{student.semester}</TableCell>
-                    <TableCell>{student.cgpa.toFixed(1)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {student.interestAreas.slice(0, 2).map((interest) => (
-                          <Badge key={interest} variant="secondary" className="text-xs">
-                            {interest}
-                          </Badge>
-                        ))}
-                        {student.interestAreas.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{student.interestAreas.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{student.careerGoal}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleGetRecommendations(student)}
-                          title="Get Recommendations"
-                        >
-                          <Sparkles className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(student)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(student.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {filteredAccounts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No student accounts found.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredAccounts.map((s) => (
+                    <TableRow
+                      key={s.id}
+                      className="cursor-pointer"
+                      onClick={() => openDetails(s.id)}
+                    >
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>{s.email}</TableCell>
+                      <TableCell>{s.email}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant={s.isBlocked ? "outline" : "default"}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleBlock(s.id, s.isBlocked);
+                          }}
+                        >
+                          {s.isBlocked ? "Unblock" : "Block"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Admin Password</DialogTitle>
+            <DialogDescription>Enter the admin password to continue.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Admin password"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsConfirmOpen(false);
+                  setConfirmPassword("");
+                  setConfirmTargetId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const current = getCurrentUser();
+                  if (!current || current.role !== "admin") {
+                    toast.error("You must be logged in as an admin to perform this action.");
+                    return;
+                  }
+                  if (!confirmPassword) {
+                    toast.error("Please enter the admin password");
+                    return;
+                  }
+                  const ok = login(current.email, confirmPassword, "admin");
+                  if (!ok) {
+                    toast.error("Incorrect admin password");
+                    return;
+                  }
+
+                  if (!confirmTargetId) return;
+
+                  if (confirmIsBlocked) {
+                    unblockStudentUser(confirmTargetId);
+                    toast.success("User unblocked");
+                  } else {
+                    blockStudentUser(confirmTargetId);
+                    toast.success("User blocked");
+                  }
+
+                  refreshAccounts();
+                  setIsConfirmOpen(false);
+                  setConfirmPassword("");
+                  setConfirmTargetId(null);
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+            <DialogDescription>Account and academic information</DialogDescription>
+          </DialogHeader>
+          {selectedUser ? (
+            <div className="space-y-4 text-sm">
+              <div>
+                <span className="font-medium">Username: </span>
+                <span>{selectedUser.email}</span>
+              </div>
+              <div>
+                <span className="font-medium">Name: </span>
+                <span>{selectedUser.name}</span>
+              </div>
+              <div>
+                <span className="font-medium">Status: </span>
+                <span>{selectedUser.isBlocked ? "Blocked" : "Active"}</span>
+              </div>
+              <hr className="my-2" />
+              <div>
+                <span className="font-medium">Branch: </span>
+                <span>{selectedProfile?.branch ?? "Not available"}</span>
+              </div>
+              <div>
+                <span className="font-medium">Semester: </span>
+                <span>{selectedProfile?.semester ?? "Not available"}</span>
+              </div>
+              <div>
+                <span className="font-medium">CGPA: </span>
+                <span>{selectedProfile?.cgpa?.toFixed(1) ?? "Not available"}</span>
+              </div>
+              <div>
+                <span className="font-medium">Interests: </span>
+                <span>
+                  {selectedProfile?.interestAreas?.length
+                    ? selectedProfile.interestAreas.join(", ")
+                    : "Not available"}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Career Goal: </span>
+                <span>{selectedProfile?.careerGoal ?? "Not available"}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={openResetPassword}
+              >
+                View / Change Password
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No student selected.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Student Password</DialogTitle>
+            <DialogDescription>
+              Enter the admin password to confirm and set a new password for this student.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <Label className="mb-1 block">Admin password</Label>
+              <div className="relative">
+                <Input
+                  type={showResetAdmin ? "text" : "password"}
+                  value={resetAdminPassword}
+                  onChange={(e) => setResetAdminPassword(e.target.value)}
+                  placeholder="Admin password"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                  onClick={() => setShowResetAdmin((v) => !v)}
+                >
+                  {showResetAdmin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1 block">New student password</Label>
+              <div className="relative">
+                <Input
+                  type={showResetNew ? "text" : "password"}
+                  value={resetNewPassword}
+                  onChange={(e) => setResetNewPassword(e.target.value)}
+                  placeholder="New password for student"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                  onClick={() => setShowResetNew((v) => !v)}
+                >
+                  {showResetNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsResetOpen(false);
+                  setResetAdminPassword("");
+                  setResetNewPassword("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const current = getCurrentUser();
+                  if (!current || current.role !== "admin") {
+                    toast.error("You must be logged in as an admin to perform this action.");
+                    return;
+                  }
+                  if (!resetAdminPassword) {
+                    toast.error("Please enter the admin password");
+                    return;
+                  }
+                  if (!resetNewPassword) {
+                    toast.error("Please enter a new student password");
+                    return;
+                  }
+                  const ok = login(current.email, resetAdminPassword, "admin");
+                  if (!ok) {
+                    toast.error("Incorrect admin password");
+                    return;
+                  }
+                  if (!selectedUser) return;
+
+                  const updated = adminResetStudentPassword(selectedUser.id, resetNewPassword);
+                  if (!updated) {
+                    toast.error("Unable to update password");
+                    return;
+                  }
+
+                  toast.success("Student password updated successfully");
+                  setIsResetOpen(false);
+                  setResetAdminPassword("");
+                  setResetNewPassword("");
+                }}
+              >
+                Save Password
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

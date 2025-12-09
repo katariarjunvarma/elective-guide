@@ -6,6 +6,7 @@ export interface User {
   email: string;
   passwordHash: string;
   role: UserRole;
+  isBlocked?: boolean;
 }
 
 export interface PendingUserRegistration {
@@ -44,6 +45,7 @@ function loadUsers(): User[] {
       email: "adminhead",
       passwordHash: simpleHash("admin@head"),
       role: "admin",
+      isBlocked: false,
     },
     {
       id: "student-1",
@@ -51,6 +53,7 @@ function loadUsers(): User[] {
       email: "user001",
       passwordHash: simpleHash("user@001"),
       role: "student",
+      isBlocked: false,
     },
   ];
 
@@ -102,7 +105,7 @@ export function setSession(session: Session | null) {
 export function login(email: string, password: string, role: UserRole): User | null {
   const users = loadUsers();
   const passwordHash = simpleHash(password);
-  const user = users.find((u) => u.email === email && u.passwordHash === passwordHash && u.role === role);
+  const user = users.find((u) => u.email === email && u.passwordHash === passwordHash && u.role === role && !u.isBlocked);
   if (!user) return null;
   setSession({ userId: user.id, role: user.role });
   return user;
@@ -124,7 +127,7 @@ export function listStudents(): User[] {
   return users.filter((u) => u.role === "student");
 }
 
-export function createStudent(input: Omit<User, "id" | "passwordHash" | "role"> & { temporaryPassword: string }): User {
+export function createStudent(input: Omit<User, "id" | "passwordHash" | "role" | "isBlocked"> & { temporaryPassword: string }): User {
   const users = loadUsers();
   const id = `student-${Date.now()}`;
   const newUser: User = {
@@ -133,13 +136,14 @@ export function createStudent(input: Omit<User, "id" | "passwordHash" | "role"> 
     email: input.email,
     passwordHash: simpleHash(input.temporaryPassword),
     role: "student",
+    isBlocked: false,
   };
   users.push(newUser);
   saveUsers(users);
   return newUser;
 }
 
-export function updateUser(id: string, updates: Partial<Pick<User, "name" | "email" | "passwordHash">>): User | null {
+export function updateUser(id: string, updates: Partial<Pick<User, "name" | "email" | "passwordHash" | "isBlocked">>): User | null {
   const users = loadUsers();
   const index = users.findIndex((u) => u.id === id);
   if (index === -1) return null;
@@ -197,6 +201,7 @@ export function approvePendingUserRegistration(id: string): User | null {
     email: record.username,
     passwordHash: record.passwordHash,
     role: "student",
+    isBlocked: false,
   };
 
   users.push(newUser);
@@ -211,4 +216,17 @@ export function approvePendingUserRegistration(id: string): User | null {
 export function rejectPendingUserRegistration(id: string) {
   const pending = loadPendingUsers().filter((p) => p.id !== id);
   savePendingUsers(pending);
+}
+
+export function blockStudentUser(id: string) {
+  updateUser(id, { isBlocked: true });
+}
+
+export function unblockStudentUser(id: string) {
+  updateUser(id, { isBlocked: false });
+}
+
+export function adminResetStudentPassword(id: string, newPassword: string): User | null {
+  const passwordHash = simpleHash(newPassword);
+  return updateUser(id, { passwordHash });
 }
