@@ -10,16 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { courses as initialCourses, categories, careerGoals, Course } from "@/data/seedData";
+import { loadCourses, saveCourses } from "@/utils/courseStorage";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Courses() {
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
+  const [courses, setCourses] = useState<Course[]>(() => {
+    try {
+      return loadCourses();
+    } catch {
+      return initialCourses;
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Course>>({
     id: "",
     name: "",
@@ -46,14 +55,18 @@ export default function Courses() {
     }
 
     if (editingCourse) {
-      setCourses(courses.map((c) => (c.id === editingCourse.id ? (formData as Course) : c)));
+      const updated = courses.map((c) => (c.id === editingCourse.id ? (formData as Course) : c));
+      setCourses(updated);
+      saveCourses(updated);
       toast.success("Course updated successfully");
     } else {
       if (courses.some((c) => c.id === formData.id)) {
         toast.error("Course ID already exists");
         return;
       }
-      setCourses([...courses, formData as Course]);
+      const updated = [...courses, formData as Course];
+      setCourses(updated);
+      saveCourses(updated);
       toast.success("Course created successfully");
     }
 
@@ -69,8 +82,15 @@ export default function Courses() {
   };
 
   const handleDelete = (id: string) => {
-    setCourses(courses.filter((c) => c.id !== id));
+    const updated = courses.filter((c) => c.id !== id);
+    setCourses(updated);
+    saveCourses(updated);
     toast.success("Course deleted successfully");
+  };
+
+  const handleViewCourse = (course: Course) => {
+    setSelectedCourse(course);
+    setIsViewDialogOpen(true);
   };
 
   const resetForm = () => {
@@ -272,7 +292,11 @@ export default function Courses() {
               </TableHeader>
               <TableBody>
                 {filteredCourses.map((course) => (
-                  <TableRow key={course.id}>
+                  <TableRow
+                    key={course.id}
+                    className="cursor-pointer"
+                    onClick={() => handleViewCourse(course)}
+                  >
                     <TableCell className="font-medium">{course.id}</TableCell>
                     <TableCell>{course.name}</TableCell>
                     <TableCell>
@@ -291,14 +315,20 @@ export default function Courses() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleEdit(course)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(course);
+                            }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(course.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(course.id);
+                            }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -312,6 +342,41 @@ export default function Courses() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedCourse ? `${selectedCourse.id} – ${selectedCourse.name}` : "Course Details"}
+            </DialogTitle>
+            <DialogDescription>Course prerequisites and description</DialogDescription>
+          </DialogHeader>
+          {selectedCourse && (
+            <div className="space-y-4 py-2">
+              <div>
+                <p className="text-sm font-semibold">Category</p>
+                <p className="text-sm text-muted-foreground">{selectedCourse.category}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Career Path</p>
+                <p className="text-sm text-muted-foreground">{selectedCourse.careerPath}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Prerequisites</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedCourse.prerequisites || "No specific prerequisites"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Description</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {selectedCourse.description || "No description provided"}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

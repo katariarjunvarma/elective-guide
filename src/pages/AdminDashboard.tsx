@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { listStudents, listPendingUserRegistrations } from "@/utils/authApi";
 import { useEffect, useState } from "react";
 import { courses } from "@/data/seedData";
+import { loadCoursePreferences } from "@/utils/coursePreferencesStorage";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [studentsCount, setStudentsCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [blockedCount, setBlockedCount] = useState(0);
+  const [preferencesCount, setPreferencesCount] = useState(0);
 
   const totalCourses = courses.length;
 
@@ -17,6 +19,7 @@ export default function AdminDashboard() {
     setStudentsCount(students.length);
     setBlockedCount(students.filter((s) => s.isBlocked).length);
     setPendingCount(listPendingUserRegistrations().length);
+    setPreferencesCount(loadCoursePreferences().length);
   }, []);
 
   return (
@@ -63,6 +66,15 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{blockedCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer" onClick={() => navigate("/admin/course-preferences")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Submitted Preferences</CardTitle>
+            <CardDescription>Student course preference submissions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{preferencesCount}</div>
           </CardContent>
         </Card>
       </div>

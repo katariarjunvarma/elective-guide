@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { students, courses } from "@/data/seedData";
+import { students } from "@/data/seedData";
+import { loadCourses } from "@/utils/courseStorage";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function Analytics() {
+  const courseList = loadCourses();
+  const hasStudents = students.length > 0;
   // Students per branch
   const branchData = students.reduce((acc, student) => {
     const existing = acc.find((item) => item.name === student.branch);
@@ -15,7 +18,7 @@ export default function Analytics() {
   }, [] as { name: string; count: number }[]);
 
   // Popular categories
-  const categoryData = courses.reduce((acc, course) => {
+  const categoryData = courseList.reduce((acc, course) => {
     const existing = acc.find((item) => item.name === course.category);
     if (existing) {
       existing.count += 1;
@@ -35,25 +38,29 @@ export default function Analytics() {
     { name: "9-10", count: 0 },
   ];
 
-  students.forEach((student) => {
-    if (student.cgpa < 5) cgpaRanges[0].count++;
-    else if (student.cgpa < 6) cgpaRanges[1].count++;
-    else if (student.cgpa < 7) cgpaRanges[2].count++;
-    else if (student.cgpa < 8) cgpaRanges[3].count++;
-    else if (student.cgpa < 9) cgpaRanges[4].count++;
-    else cgpaRanges[5].count++;
-  });
+  if (hasStudents) {
+    students.forEach((student) => {
+      if (student.cgpa < 5) cgpaRanges[0].count++;
+      else if (student.cgpa < 6) cgpaRanges[1].count++;
+      else if (student.cgpa < 7) cgpaRanges[2].count++;
+      else if (student.cgpa < 8) cgpaRanges[3].count++;
+      else if (student.cgpa < 9) cgpaRanges[4].count++;
+      else cgpaRanges[5].count++;
+    });
+  }
 
   // Career goals distribution
-  const careerData = students.reduce((acc, student) => {
-    const existing = acc.find((item) => item.name === student.careerGoal);
-    if (existing) {
-      existing.value += 1;
-    } else {
-      acc.push({ name: student.careerGoal, value: 1 });
-    }
-    return acc;
-  }, [] as { name: string; value: number }[]);
+  const careerData = hasStudents
+    ? students.reduce((acc, student) => {
+        const existing = acc.find((item) => item.name === student.careerGoal);
+        if (existing) {
+          existing.value += 1;
+        } else {
+          acc.push({ name: student.careerGoal, value: 1 });
+        }
+        return acc;
+      }, [] as { name: string; value: number }[])
+    : [];
 
   const COLORS = [
     "hsl(var(--primary))",
@@ -65,9 +72,15 @@ export default function Analytics() {
     "hsl(180 60% 60%)",
   ];
 
-  const avgCGPA = students.reduce((sum, s) => sum + s.cgpa, 0) / students.length;
-  const avgMathScore = students.reduce((sum, s) => sum + s.mathScore, 0) / students.length;
-  const avgCodingSkill = students.reduce((sum, s) => sum + s.codingSkill, 0) / students.length;
+  const avgCGPA = hasStudents
+    ? students.reduce((sum, s) => sum + s.cgpa, 0) / students.length
+    : 0;
+  const avgMathScore = hasStudents
+    ? students.reduce((sum, s) => sum + s.mathScore, 0) / students.length
+    : 0;
+  const avgCodingSkill = hasStudents
+    ? students.reduce((sum, s) => sum + s.codingSkill, 0) / students.length
+    : 0;
 
   return (
     <div className="space-y-6">

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Recommendations from "./pages/Recommendations";
+import CoursePreferences from "./pages/CoursePreferences";
 import Students from "./pages/Students";
 import Courses from "./pages/Courses";
 import Analytics from "./pages/Analytics";
@@ -13,6 +14,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminCoursePreferences from "./pages/AdminCoursePreferences";
 import Profile from "./pages/Profile";
 import PendingUserApprovals from "./pages/PendingUserApprovals";
 import BlockedStudents from "./pages/BlockedStudents";
@@ -62,6 +64,16 @@ const App = () => (
               <AppLayout>
                 <RequireAuth role="student">
                   <Recommendations />
+                </RequireAuth>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/course-preferences"
+            element={
+              <AppLayout>
+                <RequireAuth role="student">
+                  <CoursePreferences />
                 </RequireAuth>
               </AppLayout>
             }
@@ -122,6 +134,16 @@ const App = () => (
               <AppLayout>
                 <RequireAuth role="admin">
                   <AdminDashboard />
+                </RequireAuth>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/admin/course-preferences"
+            element={
+              <AppLayout>
+                <RequireAuth role="admin">
+                  <AdminCoursePreferences />
                 </RequireAuth>
               </AppLayout>
             }

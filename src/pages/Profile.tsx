@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { updateUser } from "@/utils/authApi";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -31,6 +31,7 @@ export default function Profile() {
       toast.error("Failed to update profile");
       return;
     }
+    refreshUser();
     toast.success("Profile updated");
   };
 

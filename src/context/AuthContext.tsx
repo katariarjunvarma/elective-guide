@@ -7,6 +7,7 @@ interface AuthContextValue {
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   isAuthLoading: boolean;
+  refreshUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -33,6 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = () => {
+    const existing = getCurrentUser();
+    setUser(existing);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -41,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login: handleLogin,
         logout: handleLogout,
         isAuthLoading,
+        refreshUser,
       }}
     >
       {children}

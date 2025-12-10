@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,12 @@ import { courses, branches, semesters, timeCommitments, interestAreas, careerGoa
 import { generateRecommendations, RecommendationResult } from "@/utils/recommendationEngine";
 import { Student } from "@/data/seedData";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Recommendations() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<Partial<Student>>({
     id: "",
     name: "",
@@ -26,6 +30,15 @@ export default function Recommendations() {
     interestAreas: [],
     careerGoal: "",
   });
+
+  useEffect(() => {
+    if (!user) return;
+    setFormData((prev) => ({
+      ...prev,
+      id: (user as any).username ?? user.email,
+      name: user.name,
+    }));
+  }, [user]);
 
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
   const [filteredRecommendations, setFilteredRecommendations] = useState<RecommendationResult[]>([]);
@@ -133,8 +146,8 @@ export default function Recommendations() {
                 <Input
                   id="studentId"
                   value={formData.id}
-                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                  placeholder="ST001"
+                  placeholder="Student ID from profile"
+                  disabled
                 />
               </div>
               <div className="space-y-2">
@@ -142,8 +155,8 @@ export default function Recommendations() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Your Name"
+                  disabled
                 />
               </div>
             </div>
@@ -187,7 +200,7 @@ export default function Recommendations() {
             <div className="space-y-2">
               <Label>CGPA: {formData.cgpa?.toFixed(1)}</Label>
               <Slider
-                value={[formData.cgpa || 7.0]}
+                value={[formData.cgpa ?? 7.0]}
                 onValueChange={([val]) => setFormData({ ...formData, cgpa: val })}
                 min={0}
                 max={10}
@@ -199,7 +212,7 @@ export default function Recommendations() {
             <div className="space-y-2">
               <Label>Math Score: {formData.mathScore}</Label>
               <Slider
-                value={[formData.mathScore || 70]}
+                value={[formData.mathScore ?? 70]}
                 onValueChange={([val]) => setFormData({ ...formData, mathScore: val })}
                 min={0}
                 max={100}
@@ -211,7 +224,7 @@ export default function Recommendations() {
             <div className="space-y-2">
               <Label>Coding Skill: {formData.codingSkill}</Label>
               <Slider
-                value={[formData.codingSkill || 70]}
+                value={[formData.codingSkill ?? 70]}
                 onValueChange={([val]) => setFormData({ ...formData, codingSkill: val })}
                 min={0}
                 max={100}
@@ -283,6 +296,20 @@ export default function Recommendations() {
 
         {/* Right: Recommendations */}
         <div className="space-y-4">
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle>Select Course Preferences</CardTitle>
+              <CardDescription>
+                Submit your top 5 course choices so your admin can view your preferences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline" onClick={() => navigate("/course-preferences")}>
+                Choose Preferences
+              </Button>
+            </CardContent>
+          </Card>
+
           {recommendations.length > 0 && (
             <Card>
               <CardHeader>
