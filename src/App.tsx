@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import PendingUserApprovals from "./pages/PendingUserApprovals";
+import BlockedStudents from "./pages/BlockedStudents";
 import { useAuth } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
@@ -131,6 +132,16 @@ const App = () => (
               <AppLayout>
                 <RequireAuth role="admin">
                   <PendingUserApprovals />
+                </RequireAuth>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/admin/blocked-students"
+            element={
+              <AppLayout>
+                <RequireAuth role="admin">
+                  <BlockedStudents />
                 </RequireAuth>
               </AppLayout>
             }

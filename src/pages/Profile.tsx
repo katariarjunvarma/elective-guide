@@ -12,6 +12,7 @@ export default function Profile() {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [interests, setInterests] = useState("");
   const [careerGoals, setCareerGoals] = useState("");
 
@@ -19,6 +20,7 @@ export default function Profile() {
     if (user) {
       setName(user.name);
       setEmail(user.email);
+      setUsername((user as any).username ?? user.email);
     }
   }, [user]);
 
@@ -56,6 +58,10 @@ export default function Profile() {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" value={username} disabled readOnly />
           </div>
         </CardContent>
       </Card>

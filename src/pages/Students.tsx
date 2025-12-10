@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Eye, EyeOff } from "lucide-react";
 import { students as profileStudents, Student } from "@/data/seedData";
 import { toast } from "sonner";
-import { listStudents, blockStudentUser, unblockStudentUser, getCurrentUser, login, createPendingUserRegistration, adminResetStudentPassword } from "@/utils/authApi";
+import { listStudents, blockStudentUser, unblockStudentUser, getCurrentUser, login, createPendingUserRegistration, adminResetStudentPassword, adminUpdateStudentUsername } from "@/utils/authApi";
 
 export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +21,8 @@ export default function Students() {
   const [confirmTargetId, setConfirmTargetId] = useState<string | null>(null);
   const [confirmIsBlocked, setConfirmIsBlocked] = useState<boolean | undefined>(undefined);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedReasonKey, setSelectedReasonKey] = useState<string>("");
+  const [customReason, setCustomReason] = useState("");
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [regName, setRegName] = useState("");
@@ -36,6 +38,11 @@ export default function Students() {
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [showResetAdmin, setShowResetAdmin] = useState(false);
   const [showResetNew, setShowResetNew] = useState(false);
+
+  const [isUsernameOpen, setIsUsernameOpen] = useState(false);
+  const [usernameAdminPassword, setUsernameAdminPassword] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [showUsernameAdminPassword, setShowUsernameAdminPassword] = useState(false);
 
   const refreshAccounts = () => {
     setAccounts(listStudents());
@@ -58,6 +65,14 @@ export default function Students() {
     setShowResetAdmin(false);
     setShowResetNew(false);
     setIsResetOpen(true);
+  };
+
+  const openChangeUsername = (userId: string, currentUsername: string) => {
+    setSelectedUserId(userId);
+    setUsernameAdminPassword("");
+    setNewUsername(currentUsername);
+    setShowUsernameAdminPassword(false);
+    setIsUsernameOpen(true);
   };
 
   const handleAddUserSubmit = async (e: React.FormEvent) => {
@@ -98,6 +113,8 @@ export default function Students() {
     setConfirmIsBlocked(isBlocked);
     setConfirmPassword("");
     setShowPassword(false);
+    setSelectedReasonKey("");
+    setCustomReason("");
     setIsConfirmOpen(true);
   };
 
@@ -255,19 +272,31 @@ export default function Students() {
                       onClick={() => openDetails(s.id)}
                     >
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.email}</TableCell>
+                      <TableCell>{s.username}</TableCell>
                       <TableCell>{s.email}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant={s.isBlocked ? "outline" : "default"}
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleBlock(s.id, s.isBlocked);
-                          }}
-                        >
-                          {s.isBlocked ? "Unblock" : "Block"}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant={s.isBlocked ? "outline" : "default"}
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleBlock(s.id, s.isBlocked);
+                            }}
+                          >
+                            {s.isBlocked ? "Unblock" : "Block"}
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openChangeUsername(s.id, s.username);
+                            }}
+                          >
+                            Edit Username
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -300,6 +329,31 @@ export default function Students() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {!confirmIsBlocked && (
+              <div className="space-y-2">
+                <Label className="mb-1 block">Reason for blocking</Label>
+                <Select value={selectedReasonKey} onValueChange={setSelectedReasonKey}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="multiple-failed-logins">Multiple failed login attempts</SelectItem>
+                    <SelectItem value="misuse-features">Misuse of portal features</SelectItem>
+                    <SelectItem value="temp-suspension">Temporary suspension pending investigation</SelectItem>
+                    <SelectItem value="not-enrolled">Graduated / no longer enrolled</SelectItem>
+                    <SelectItem value="duplicate-account">Duplicate / fake account</SelectItem>
+                    <SelectItem value="other">Other (specify)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {selectedReasonKey === "other" && (
+                  <Input
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Enter custom reason (required)"
+                  />
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-1">
               <Button
                 variant="outline"
@@ -307,6 +361,8 @@ export default function Students() {
                   setIsConfirmOpen(false);
                   setConfirmPassword("");
                   setConfirmTargetId(null);
+                  setSelectedReasonKey("");
+                  setCustomReason("");
                 }}
               >
                 Cancel
@@ -334,7 +390,27 @@ export default function Students() {
                     unblockStudentUser(confirmTargetId);
                     toast.success("User unblocked");
                   } else {
-                    blockStudentUser(confirmTargetId);
+                    let finalReason = "";
+                    if (selectedReasonKey === "other") {
+                      finalReason = customReason.trim();
+                    } else if (selectedReasonKey === "multiple-failed-logins") {
+                      finalReason = "Multiple failed login attempts";
+                    } else if (selectedReasonKey === "misuse-features") {
+                      finalReason = "Misuse of portal features";
+                    } else if (selectedReasonKey === "temp-suspension") {
+                      finalReason = "Temporary suspension pending investigation";
+                    } else if (selectedReasonKey === "not-enrolled") {
+                      finalReason = "Graduated / no longer enrolled";
+                    } else if (selectedReasonKey === "duplicate-account") {
+                      finalReason = "Duplicate / fake account";
+                    }
+
+                    if (!finalReason) {
+                      toast.error("Please select or enter a reason for blocking this student");
+                      return;
+                    }
+
+                    blockStudentUser(confirmTargetId, finalReason);
                     toast.success("User blocked");
                   }
 
@@ -342,6 +418,8 @@ export default function Students() {
                   setIsConfirmOpen(false);
                   setConfirmPassword("");
                   setConfirmTargetId(null);
+                  setSelectedReasonKey("");
+                  setCustomReason("");
                 }}
               >
                 Confirm
@@ -371,6 +449,12 @@ export default function Students() {
                 <span className="font-medium">Status: </span>
                 <span>{selectedUser.isBlocked ? "Blocked" : "Active"}</span>
               </div>
+              {selectedUser.isBlocked && selectedUser.blockReason && (
+                <div>
+                  <span className="font-medium">Block Reason: </span>
+                  <span>{selectedUser.blockReason}</span>
+                </div>
+              )}
               <hr className="my-2" />
               <div>
                 <span className="font-medium">Branch: </span>
@@ -502,6 +586,94 @@ export default function Students() {
                 }}
               >
                 Save Password
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isUsernameOpen} onOpenChange={setIsUsernameOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Username</DialogTitle>
+            <DialogDescription>
+              Enter the admin password to confirm and set a new username for this student.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <Label className="mb-1 block">Admin password</Label>
+              <div className="relative">
+                <Input
+                  type={showUsernameAdminPassword ? "text" : "password"}
+                  value={usernameAdminPassword}
+                  onChange={(e) => setUsernameAdminPassword(e.target.value)}
+                  placeholder="Admin password"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                  onClick={() => setShowUsernameAdminPassword((v) => !v)}
+                >
+                  {showUsernameAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1 block">New username</Label>
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="New username"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsUsernameOpen(false);
+                  setUsernameAdminPassword("");
+                  setNewUsername("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const current = getCurrentUser();
+                  if (!current || current.role !== "admin") {
+                    toast.error("You must be logged in as an admin to perform this action.");
+                    return;
+                  }
+                  if (!usernameAdminPassword) {
+                    toast.error("Please enter the admin password");
+                    return;
+                  }
+                  if (!newUsername.trim()) {
+                    toast.error("Please enter a new username");
+                    return;
+                  }
+                  const ok = login(current.username, usernameAdminPassword, "admin");
+                  if (!ok) {
+                    toast.error("Incorrect admin password");
+                    return;
+                  }
+                  if (!selectedUser) return;
+
+                  const updated = adminUpdateStudentUsername(selectedUser.id, newUsername.trim());
+                  if (!updated) {
+                    toast.error("Unable to update username (it may already be in use)");
+                    return;
+                  }
+
+                  toast.success("Username updated successfully");
+                  refreshAccounts();
+                  setIsUsernameOpen(false);
+                  setUsernameAdminPassword("");
+                  setNewUsername("");
+                }}
+              >
+                Save Username
               </Button>
             </div>
           </div>

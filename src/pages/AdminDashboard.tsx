@@ -1,16 +1,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { listStudents, listPendingUserRegistrations } from "@/utils/authApi";
 import { useEffect, useState } from "react";
+import { courses } from "@/data/seedData";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [studentsCount, setStudentsCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [blockedCount, setBlockedCount] = useState(0);
+
+  const totalCourses = courses.length;
 
   useEffect(() => {
-    setStudentsCount(listStudents().length);
+    const students = listStudents();
+    setStudentsCount(students.length);
+    setBlockedCount(students.filter((s) => s.isBlocked).length);
     setPendingCount(listPendingUserRegistrations().length);
   }, []);
 
@@ -21,13 +26,10 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage students and monitor the system</p>
         </div>
-        <Button onClick={() => navigate("/students")}>
-          Manage Students
-        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="cursor-pointer" onClick={() => navigate("/students")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <CardDescription>Registered student accounts</CardDescription>
@@ -43,6 +45,24 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer" onClick={() => navigate("/courses")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+            <CardDescription>Elective courses available in the portal</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCourses}</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer" onClick={() => navigate("/admin/blocked-students")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Blocked Students</CardTitle>
+            <CardDescription>Students currently blocked from login</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{blockedCount}</div>
           </CardContent>
         </Card>
       </div>
