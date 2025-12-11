@@ -9,6 +9,8 @@ export interface User {
   role: UserRole;
   isBlocked?: boolean;
   blockReason?: string;
+  interestAreas?: string[];
+  careerGoals?: string[];
 }
 
 export interface PendingUserRegistration {
@@ -49,6 +51,8 @@ function loadUsers(): User[] {
       passwordHash: simpleHash("admin@head"),
       role: "admin",
       isBlocked: false,
+      interestAreas: [],
+      careerGoals: [],
     },
     {
       id: "student-1",
@@ -58,6 +62,8 @@ function loadUsers(): User[] {
       passwordHash: simpleHash("user@001"),
       role: "student",
       isBlocked: false,
+      interestAreas: [],
+      careerGoals: [],
     },
   ];
 
@@ -148,6 +154,8 @@ export function createStudent(input: Omit<User, "id" | "passwordHash" | "role" |
     passwordHash: simpleHash(input.temporaryPassword),
     role: "student",
     isBlocked: false,
+    interestAreas: input.interestAreas ?? [],
+    careerGoals: input.careerGoals ?? [],
   };
   users.push(newUser);
   saveUsers(users);
@@ -156,7 +164,12 @@ export function createStudent(input: Omit<User, "id" | "passwordHash" | "role" |
 
 export function updateUser(
   id: string,
-  updates: Partial<Pick<User, "name" | "email" | "passwordHash" | "isBlocked" | "blockReason">>
+  updates: Partial<
+    Pick<
+      User,
+      "name" | "email" | "passwordHash" | "isBlocked" | "blockReason" | "interestAreas" | "careerGoals"
+    >
+  >
 ): User | null {
   const users = loadUsers();
   const index = users.findIndex((u) => u.id === id);
@@ -259,4 +272,20 @@ export function adminUpdateStudentUsername(id: string, newUsername: string): Use
   users[index] = updated;
   saveUsers(users);
   return updated;
+}
+
+export function changePassword(userId: string, currentPassword: string, newPassword: string): boolean {
+  const users = loadUsers();
+  const index = users.findIndex((u) => u.id === userId);
+  if (index === -1) return false;
+
+  const currentHash = simpleHash(currentPassword.trim());
+  if (users[index].passwordHash !== currentHash) {
+    return false;
+  }
+
+  const newHash = simpleHash(newPassword.trim());
+  users[index] = { ...users[index], passwordHash: newHash };
+  saveUsers(users);
+  return true;
 }

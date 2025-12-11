@@ -154,8 +154,8 @@ export default function AdminCoursePreferences() {
                   <TableHead>Student</TableHead>
                   <TableHead>Username</TableHead>
                   <TableHead>Submitted At</TableHead>
+                  <TableHead>Submitted By</TableHead>
                   <TableHead>Preferences (in order)</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,6 +165,7 @@ export default function AdminCoursePreferences() {
                     <TableCell>{sub.name}</TableCell>
                     <TableCell>{usernameMap.get(sub.userId) ?? sub.username ?? sub.userId}</TableCell>
                     <TableCell>{new Date(sub.createdAt).toLocaleString()}</TableCell>
+                    <TableCell className="capitalize text-sm">{sub.submittedBy}</TableCell>
                     <TableCell>
                       <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                         {sub.preferences.map((id) => (
@@ -172,7 +173,6 @@ export default function AdminCoursePreferences() {
                         ))}
                       </ol>
                     </TableCell>
-                    <TableCell className="text-sm capitalize">{sub.status}</TableCell>
                     <TableCell className="space-x-2">
                       <Button size="sm" variant="outline" onClick={() => openEdit(sub)}>
                         Edit Preferences

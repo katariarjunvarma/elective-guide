@@ -2,31 +2,51 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { updateUser } from "@/utils/authApi";
+import { interestAreas, careerGoals } from "@/data/seedData";
 
 export default function Profile() {
   const { user, refreshUser } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [interests, setInterests] = useState("");
-  const [careerGoals, setCareerGoals] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [selectedCareerGoals, setSelectedCareerGoals] = useState<string[]>([]);
+
+  const toggleInterest = (interest: string) => {
+    setInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+    );
+  };
+
+  const toggleCareerGoal = (goal: string) => {
+    setSelectedCareerGoals((prev) =>
+      prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal]
+    );
+  };
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
       setUsername((user as any).username ?? user.email);
+      setInterests(user.interestAreas ?? []);
+      setSelectedCareerGoals(user.careerGoals ?? []);
     }
   }, [user]);
 
   const handleSave = () => {
     if (!user) return;
-    const updated = updateUser(user.id, { name, email });
+    const updated = updateUser(user.id, {
+      name,
+      email,
+      interestAreas: interests,
+      careerGoals: selectedCareerGoals,
+    });
     if (!updated) {
       toast.error("Failed to update profile");
       return;
@@ -75,21 +95,33 @@ export default function Profile() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="interests">Interests / Preferred Domains</Label>
-            <Textarea
-              id="interests"
-              value={interests}
-              onChange={(e) => setInterests(e.target.value)}
-              rows={3}
-            />
+            <div className="flex flex-wrap gap-2">
+              {interestAreas.map((interest) => (
+                <Badge
+                  key={interest}
+                  variant={interests.includes(interest) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => toggleInterest(interest)}
+                >
+                  {interest}
+                </Badge>
+              ))}
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="careerGoals">Career Goals</Label>
-            <Textarea
-              id="careerGoals"
-              value={careerGoals}
-              onChange={(e) => setCareerGoals(e.target.value)}
-              rows={3}
-            />
+            <div className="flex flex-wrap gap-2">
+              {careerGoals.map((goal) => (
+                <Badge
+                  key={goal}
+                  variant={selectedCareerGoals.includes(goal) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => toggleCareerGoal(goal)}
+                >
+                  {goal}
+                </Badge>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

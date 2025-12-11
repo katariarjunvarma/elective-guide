@@ -2,6 +2,7 @@ import { Course } from "@/data/seedData";
 import { User } from "@/utils/authApi";
 
 export type CoursePreferenceStatus = "pending" | "approved" | "disapproved";
+export type CoursePreferenceSubmittedBy = "user" | "admin";
 
 export interface CoursePreferenceSubmission {
   id: string;
@@ -11,6 +12,7 @@ export interface CoursePreferenceSubmission {
   preferences: string[]; // list of course IDs in order
   createdAt: string;
   status: CoursePreferenceStatus;
+  submittedBy: CoursePreferenceSubmittedBy;
 }
 
 const STORAGE_KEY_PREFERENCES = "ers_course_preferences";
@@ -25,6 +27,7 @@ export function loadCoursePreferences(): CoursePreferenceSubmission[] {
     return parsed.map((p) => ({
       ...p,
       status: (p as any).status ?? "pending",
+      submittedBy: ((p as any).submittedBy ?? "user") as CoursePreferenceSubmittedBy,
     }));
   } catch {
     return [];
@@ -49,6 +52,7 @@ export function addCoursePreferenceSubmission(
     preferences,
     createdAt: new Date().toISOString(),
     status: "pending",
+    submittedBy: "user",
   };
   existing.push(submission);
   saveCoursePreferences(existing);
@@ -71,7 +75,16 @@ export function setAllCoursePreferenceStatus(status: CoursePreferenceStatus): Co
 
 export function updateCoursePreferenceChoices(id: string, preferences: string[]): CoursePreferenceSubmission[] {
   const prefs = loadCoursePreferences();
-  const updated = prefs.map((p) => (p.id === id ? { ...p, preferences } : p));
+  const updated = prefs.map((p) =>
+    p.id === id
+      ? {
+          ...p,
+          preferences,
+          createdAt: new Date().toISOString(),
+          submittedBy: "admin",
+        }
+      : p
+  );
   saveCoursePreferences(updated);
   return updated;
 }

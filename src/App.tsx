@@ -13,7 +13,8 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminMessages from "@/pages/AdminMessages";
 import AdminCoursePreferences from "./pages/AdminCoursePreferences";
 import Profile from "./pages/Profile";
 import PendingUserApprovals from "./pages/PendingUserApprovals";
@@ -144,6 +145,16 @@ const App = () => (
               <AppLayout>
                 <RequireAuth role="admin">
                   <AdminCoursePreferences />
+                </RequireAuth>
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/admin/messages"
+            element={
+              <AppLayout>
+                <RequireAuth role="admin">
+                  <AdminMessages />
                 </RequireAuth>
               </AppLayout>
             }

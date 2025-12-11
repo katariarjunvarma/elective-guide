@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, BookOpen, Sparkles, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { courses, students } from "@/data/seedData";
+import { students } from "@/data/seedData";
+import { loadCourses } from "@/utils/courseStorage";
 import { useAuth } from "@/context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -10,7 +11,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const categoryData = courses.reduce((acc, course) => {
+  const courseList = loadCourses();
+
+  const categoryData = courseList.reduce((acc, course) => {
     const existing = acc.find((item) => item.name === course.category);
     if (existing) {
       existing.count += 1;
@@ -51,7 +54,7 @@ export default function Dashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{courses.length}</div>
+            <div className="text-2xl font-bold">{courseList.length}</div>
             <p className="text-xs text-muted-foreground">Available electives</p>
           </CardContent>
         </Card>

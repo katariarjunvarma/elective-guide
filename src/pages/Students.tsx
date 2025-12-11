@@ -486,7 +486,7 @@ export default function Students() {
                 className="mt-2"
                 onClick={openResetPassword}
               >
-                View / Change Password
+                Change Password
               </Button>
             </div>
           ) : (

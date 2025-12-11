@@ -1,4 +1,4 @@
-import { LayoutDashboard, Sparkles, Users, BookOpen, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, Sparkles, Users, BookOpen, BarChart3, Settings, Mail } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +27,7 @@ export function AppSidebar() {
         { title: "Admin Dashboard", url: "/admin", icon: LayoutDashboard },
         { title: "Manage Students", url: "/students", icon: Users },
         { title: "Submitted Preferences", url: "/admin/course-preferences", icon: BookOpen },
+        { title: "Send Message", url: "/admin/messages", icon: Mail },
         { title: "Courses", url: "/courses", icon: BookOpen },
         { title: "Analytics", url: "/analytics", icon: BarChart3 },
         { title: "Settings", url: "/settings", icon: Settings },

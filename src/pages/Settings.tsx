@@ -6,8 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { changePassword } from "@/utils/authApi";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Settings() {
+  const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(
     typeof window !== "undefined"
       ? document.documentElement.classList.contains("dark")
@@ -17,6 +22,15 @@ export default function Settings() {
   const [appDescription, setAppDescription] = useState(
     "The Elective Recommendation System helps university students choose the best elective courses based on their academic profile, interests, and career goals. Using intelligent scoring algorithms, it provides personalized course suggestions to enhance your academic journey."
   );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -28,6 +42,7 @@ export default function Settings() {
       localStorage.setItem("theme", "light");
     }
   }, [darkMode]);
+
   const handleSave = () => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -38,6 +53,58 @@ export default function Settings() {
     }
 
     toast.success("Settings saved successfully");
+  };
+
+  const handleChangePassword = async () => {
+    if (!user) {
+      toast.error("You must be logged in to change your password");
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("New password should be at least 6 characters long");
+      return;
+    }
+
+    const hasLetter = /[A-Za-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSymbol = /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!hasLetter || !hasNumber || !hasSymbol) {
+      toast.error("Password must contain at least one letter, one number, and one symbol");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const ok = await changePassword(user.id, currentPassword, newPassword);
+      if (!ok) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setIsPasswordDialogOpen(false);
+      toast.success("Password changed successfully. Please log in again.");
+      logout();
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -62,6 +129,91 @@ export default function Settings() {
             </div>
             <Switch checked={darkMode} onCheckedChange={setDarkMode} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>Update your account password</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Change Password</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change Password</DialogTitle>
+                <DialogDescription>Enter your current and new password.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                      onClick={() => setShowCurrentPassword((v) => !v)}
+                    >
+                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                      onClick={() => setShowNewPassword((v) => !v)}
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 6 characters long and include at least one letter, one number, and one
+                  symbol.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleChangePassword} disabled={isChangingPassword} className="w-full sm:w-auto">
+                  {isChangingPassword ? "Changing..." : "Save Password"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
 
